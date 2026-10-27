@@ -270,6 +270,15 @@ class BotController extends Controller
 
     public function webhook(Request $request)
     {
+        // Faqat Telegram'dan kelgan so'rovlar qabul qilinadi (setWebhook'dagi secret_token)
+        $secret = (string) env('TELEGRAM_WEBHOOK_SECRET');
+        $receivedSecret = (string) $request->header('X-Telegram-Bot-Api-Secret-Token');
+
+        if ($secret === '' || !hash_equals($secret, $receivedSecret)) {
+            Log::warning('Telegram webhook: noto\'g\'ri secret token', ['ip' => $request->ip()]);
+            return response()->json(['ok' => false], 403);
+        }
+
         $data = $request->all();
         $token = env('TELEGRAM_BOT_TOKEN');
         $apiUrl = "https://api.telegram.org/bot{$token}/sendMessage";
@@ -662,8 +671,26 @@ class BotController extends Controller
             }
 
             if (strpos($callbackData, 'approve_') === 0 || strpos($callbackData, 'reject_') === 0) {
+                // Tasdiqlash/rad etish faqat admin kanalidagi tugmalardan qabul qilinadi
+                if ((string) $chatId !== (string) env('TELEGRAM_CHAT_ID')) {
+                    Http::post("https://api.telegram.org/bot{$token}/answerCallbackQuery", [
+                        'callback_query_id' => $callbackId,
+                        'text' => '⛔ Ruxsat yo\'q'
+                    ]);
+                    return response()->json(['ok' => true]);
+                }
+
                 list($action, $orderId) = explode('_', $callbackData);
                 $order = Order::with('items.product')->find($orderId);
+
+                // Allaqachon ko'rib chiqilgan buyurtmani qayta o'zgartirib bo'lmaydi
+                if ($order && $order->status !== 'created') {
+                    Http::post("https://api.telegram.org/bot{$token}/answerCallbackQuery", [
+                        'callback_query_id' => $callbackId,
+                        'text' => "ℹ️ Buyurtma #{$order->id} allaqachon: {$order->status}"
+                    ]);
+                    return response()->json(['ok' => true]);
+                }
 
                 if ($order) {
                     $userChatId = $order->chat_id;
