@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\Order;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class BotController extends Controller
@@ -185,6 +186,37 @@ class BotController extends Controller
         }
 
         return $cleaned;
+    }
+
+    // Foydalanuvchi "To'lov qilish" tugmasini bosgan buyurtmani eslab qolish uchun kalit
+    private function pendingPaymentKey($chatId)
+    {
+        return "pending_payment_order_{$chatId}";
+    }
+
+    // Foydalanuvchi tanlagan buyurtmani topadi, topilmasa eng oxirgi to'lanmagan buyurtmani qaytaradi
+    private function getPendingPaymentOrder($chatId)
+    {
+        $orderId = Cache::get($this->pendingPaymentKey($chatId));
+
+        if ($orderId) {
+            $order = Order::where('id', $orderId)
+                ->where('chat_id', $chatId)
+                ->where('status', 'created')
+                ->with('items.product')
+                ->first();
+
+            if ($order) {
+                return $order;
+            }
+        }
+
+        return Order::where('chat_id', $chatId)
+            ->where('status', 'created')
+            ->whereNotNull('address')
+            ->with('items.product')
+            ->latest()
+            ->first();
     }
 
     private function trans($key, $lang)
@@ -438,13 +470,11 @@ class BotController extends Controller
                 $photo = end($data['message']['photo']);
                 $fileId = $photo['file_id'];
 
-                $order = Order::where('chat_id', $chatId)
-                    ->where('status', 'created')
-                    ->with('items.product')
-                    ->latest()
-                    ->first();
+                $order = $this->getPendingPaymentOrder($chatId);
 
                 if ($order) {
+                    Cache::forget($this->pendingPaymentKey($chatId));
+
                     $channelId = env('TELEGRAM_CHAT_ID');
                     $productsList = "";
                     foreach ($order->items as $item) {
@@ -477,6 +507,7 @@ class BotController extends Controller
                             "💰 Oraliq summa: " . number_format($order->total) . " so'm\n" .
                             $deliveryText .
                             "💵 Jami to'lov: " . number_format($finalTotal) . " so'm\n" .
+                            "💳 To'lov usuli: " . ($order->payment_method ?? '—') . "\n" .
                             "📊 Status: {$order->status}\n",
                         'reply_markup' => json_encode([
                             'inline_keyboard' => [[
@@ -509,10 +540,15 @@ class BotController extends Controller
 
             if (strpos($callbackData, 'show_payment_') === 0) {
                 $orderId = substr($callbackData, 13);
-                $order = Order::find($orderId);
+                $order = Order::where('id', $orderId)
+                    ->where('chat_id', $chatId)
+                    ->first();
 
                 if ($order && $order->status === 'created') {
                     $lang = $this->getUserLanguage($chatId);
+
+                    // Skrinshot aynan shu buyurtmaga bog'lanishi uchun eslab qolamiz
+                    Cache::put($this->pendingPaymentKey($chatId), $order->id, now()->addDays(3));
 
                     Http::post("https://api.telegram.org/bot{$token}/answerCallbackQuery", [
                         'callback_query_id' => $callbackId,
@@ -522,7 +558,7 @@ class BotController extends Controller
                     Http::post($apiUrl, [
                         'chat_id' => $chatId,
                         'text' => $this->trans('payment_method', $lang),
-                        'reply_markup' => json_encode($this->getPaymentMethodsKeyboard())
+                        'reply_markup' => json_encode($this->getPaymentMethodsKeyboard($order->id))
                     ]);
                 }
 
@@ -530,7 +566,10 @@ class BotController extends Controller
             }
 
             if (strpos($callbackData, 'payment_') === 0) {
-                $paymentMethod = substr($callbackData, 8);
+                // Format: payment_{method}_{orderId} (eski tugmalarda: payment_{method})
+                $parts = explode('_', substr($callbackData, 8));
+                $paymentMethod = $parts[0];
+                $orderId = $parts[1] ?? null;
                 $lang = $this->getUserLanguage($chatId);
 
                 $paymentDetails = [
@@ -551,6 +590,10 @@ class BotController extends Controller
                     ]
                 ];
 
+                if (!isset($paymentDetails[$paymentMethod])) {
+                    return response()->json(['ok' => true]);
+                }
+
                 $details = $paymentDetails[$paymentMethod];
 
                 $message = "💳 To'lov tafsilotlari:\n\n" .
@@ -566,10 +609,11 @@ class BotController extends Controller
                     'reply_markup' => json_encode($this->getMainMenuKeyboard($lang))
                 ]);
 
-                Order::where('chat_id', $chatId)
-                    ->where('status', 'created')
-                    ->latest()
-                    ->first()
+                if ($orderId) {
+                    Cache::put($this->pendingPaymentKey($chatId), $orderId, now()->addDays(3));
+                }
+
+                $this->getPendingPaymentOrder($chatId)
                     ?->update(['payment_method' => $paymentMethod]);
 
                 Http::post("https://api.telegram.org/bot{$token}/answerCallbackQuery", [
@@ -738,16 +782,16 @@ class BotController extends Controller
         ]);
     }
 
-    private function getPaymentMethodsKeyboard()
+    private function getPaymentMethodsKeyboard($orderId)
     {
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '🏦 Humo Virtual', 'callback_data' => 'payment_humo'],
-                    ['text' => '💳 Visa', 'callback_data' => 'payment_visa']
+                    ['text' => '🏦 Humo Virtual', 'callback_data' => "payment_humo_{$orderId}"],
+                    ['text' => '💳 Visa', 'callback_data' => "payment_visa_{$orderId}"]
                 ],
                 [
-                    ['text' => '📱 Click', 'callback_data' => 'payment_click']
+                    ['text' => '📱 Click', 'callback_data' => "payment_click_{$orderId}"]
                 ],
                 [
                     ['text' => '🔙 Orqaga', 'callback_data' => 'back_to_menu']
