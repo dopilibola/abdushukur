@@ -3,25 +3,31 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Category;
-use App\Models\Product;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
+     *
+     * The admin login comes from ADMIN_EMAIL / ADMIN_PASSWORD in .env,
+     * so no credentials live in the repository.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $email = env('ADMIN_EMAIL');
+        $password = env('ADMIN_PASSWORD');
 
-        User::factory()->create([
-            'name' => 'Isabekoff',
-            'email' => 'abdushukurtabiboriginal@gmail.com',
-            'password' => Hash::make('abdushukur_original')
-        ]);
+        if (! $email || ! $password) {
+            $this->command?->warn('ADMIN_EMAIL / ADMIN_PASSWORD not set in .env — admin user not seeded. Use: php artisan admin:create');
 
+            return;
+        }
+
+        $user = User::firstOrNew(['email' => $email]);
+        $user->name = $user->name ?: env('ADMIN_NAME', 'Admin');
+        $user->password = $password; // hashed by the model's "hashed" cast
+        $user->is_admin = true;
+        $user->save();
     }
 }
