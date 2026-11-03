@@ -23,4 +23,4 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 *.jpg
-!/database/seeders/images/**/*.jpg
+!/public/images/products/*.jpg

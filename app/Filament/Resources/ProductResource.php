@@ -78,6 +78,10 @@ class ProductResource extends Resource
                 Forms\Components\FileUpload::make('image3')
                     ->label('Image3')
                     ->image(),
+                Forms\Components\FileUpload::make('banner')
+                    ->label('Carousel banner (21:9)')
+                    ->helperText('Shown in the store page carousel. Products without a banner are not shown there.')
+                    ->image(),
                 Forms\Components\FileUpload::make('file')
                     ->label('File'),
 
@@ -103,7 +107,7 @@ class ProductResource extends Resource
                 TextColumn::make('description_uz')->limit(50),
                 ImageColumn::make('image_preview')
                     ->label('Image')
-                    ->getStateUsing(fn($record) => $record->image1 ?? $record->image2 ?? $record->image3)
+                    ->getStateUsing(fn($record) => $record->image_url)
                     ->square(),
 
                 TextColumn::make('price'),

@@ -16,7 +16,7 @@ class MainController extends Controller
 
     public function shop(Request $request)
     {
-        $slider_products = Product::latest()->limit(4)->get();
+        $slider_products = Product::whereNotNull('banner')->latest()->limit(5)->get();
         $footer_categories = Category::limit(4)->get();
         $query = Product::with('category');
 

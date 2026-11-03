@@ -163,7 +163,7 @@
                                 @endphp
                                 <tr data-id="{{ $item->id }}">
                                     <td>
-                                        <img src="{{ asset('storage/' . $item->product->image) }}" width="80"
+                                        <img src="{{ $item->product->image_url }}" width="80"
                                             class="product-image" alt="{{ $item->product->name_uz }}">
                                     </td>
                                     <td>{{ $item->product->{'name_' . app()->getLocale()} }}</td>

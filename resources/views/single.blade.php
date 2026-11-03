@@ -50,26 +50,83 @@
         transform: translateY(-2px);
     }
 
-    .thumbnail-wrapper {
-        transition: all 0.3s ease;
-    }
-
-    .thumbnail-wrapper:hover {
-        border-color: #181a9e !important;
-        transform: scale(1.05);
-    }
-
-    .thumbnail-image {
-        transition: opacity 0.3s ease;
+    .gallery-main {
+        aspect-ratio: 1 / 1;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #f6f1e7;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     }
 
     #main-image {
-        transition: transform 0.3s ease;
-        cursor: zoom-in;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
     }
 
-    #main-image:hover {
-        transform: scale(1.03);
+    .gallery-main:hover #main-image {
+        transform: scale(1.04);
+    }
+
+    .gallery-thumbs {
+        display: flex;
+        gap: 10px;
+    }
+
+    .thumbnail-wrapper {
+        width: 84px;
+        height: 84px;
+        padding: 0;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #f6f1e7;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: all 0.2s ease;
+    }
+
+    .thumbnail-wrapper:hover,
+    .thumbnail-wrapper.active {
+        border-color: #181a9e;
+        opacity: 1;
+    }
+
+    .thumbnail-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .product-brand {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #b8892d;
+        margin-bottom: 6px;
+    }
+
+    .product-heading {
+        font-weight: 800;
+        margin-bottom: 14px;
+    }
+
+    .total-price {
+        display: inline-block;
+        font-size: 28px;
+        font-weight: 800;
+        color: #181a9e;
+    }
+
+    .product-description {
+        background: #faf7f1;
+        border-left: 4px solid #b8892d;
+        border-radius: 12px;
+        padding: 18px 20px;
+        line-height: 1.75;
+        color: #444;
     }
 
     /* Download File Button Styles */
@@ -118,8 +175,8 @@
 
     @media (max-width: 768px) {
         .thumbnail-wrapper {
-            width: 60px !important;
-            height: 60px !important;
+            width: 64px;
+            height: 64px;
         }
 
         .btn-download-file {
@@ -147,46 +204,36 @@
     <div class="site-section">
         <div class="container">
             <div class="row">
-                <div class="col-md-5 mr-auto">
-                    @php
-                        $mainImage = $product->image1 ?? ($product->image2 ?? ($product->image3 ?? null));
-                    @endphp
-                    <div class="border text-center mb-3">
-                        @if ($mainImage)
-                            <img id="main-image" src="{{ asset('storage/' . $mainImage) }}"
-                                alt="{{ $product->name_uz }}" class="img-fluid p-5">
-                        @else
-                            <img id="main-image" src="{{ asset('images/default.png') }}" alt="No image"
-                                class="img-fluid p-5">
-                        @endif
+                <div class="col-md-5 mr-auto mb-4 mb-md-0">
+                    <div class="gallery-main mb-3">
+                        <img id="main-image" src="{{ $product->image_url }}" alt="{{ $product->name_uz }}">
                     </div>
 
-                    <div class="d-flex justify-content-center gap-2 flex-wrap">
-                        @foreach ([$product->image1, $product->image2, $product->image3] as $img)
-                            @if ($img)
-                                <div class="border thumbnail-wrapper"
-                                    style="cursor:pointer; padding:8px; width:80px; height:80px;">
-                                    <img src="{{ asset('storage/' . $img) }}" class="img-fluid thumbnail-image"
-                                        data-image="{{ asset('storage/' . $img) }}"
-                                        style="width:100%; height:100%; object-fit:contain;">
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
+                    @if (count($product->gallery) > 1)
+                        <div class="gallery-thumbs">
+                            @foreach ($product->gallery as $i => $url)
+                                <button type="button" class="thumbnail-wrapper {{ $i === 0 ? 'active' : '' }}">
+                                    <img src="{{ $url }}" class="thumbnail-image" data-image="{{ $url }}"
+                                        alt="{{ $product->name_uz }} {{ $i + 1 }}">
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <div class="col-md-6">
-                    <h2 class="text-black">{{ $product->{'name_' . app()->getLocale()} }}</h2>
+                    <div class="product-brand">Sino Tib</div>
+                    <h2 class="text-black product-heading">{{ $product->{'name_' . app()->getLocale()} }}</h2>
+
+                    <div class="price-section mb-4">
+                        <strong class="total-price">{{ number_format($product->price, 0, '.', ' ') }} uzs</strong>
+                    </div>
 
                     @if ($product->{'description_' . app()->getLocale()})
-                        <p>{!! nl2br(e($product->{'description_' . app()->getLocale()})) !!}</p>
+                        <div class="product-description mb-4">
+                            {!! nl2br(e($product->{'description_' . app()->getLocale()})) !!}
+                        </div>
                     @endif
-
-                    <div class="price-section mb-3">
-                        <p><strong
-                                class="text-primary h4 total-price">{{ number_format($product->price, 0, '.', ' ') }}
-                                uzs</strong></p>
-                    </div>
 
                     <form action="{{ route('cart.add', ['locale' => app()->getLocale(), 'id' => $product->id]) }}"
                         method="POST">
@@ -221,7 +268,7 @@
                                 </tr>
                                 <tr>
                                     <td>{{ __('messages.single_product_price') }}</td>
-                                    <td class="unit-price-table">{{ $product->price }} uzs</td>
+                                    <td class="unit-price-table">{{ number_format($product->price, 0, '.', ' ') }} uzs</td>
                                 </tr>
                                 <tr>
                                     <td>{{ __('messages.single_product_country') }}</td>
@@ -358,10 +405,12 @@
                 updateTotalPrice();
             });
 
-            $('.thumbnail-image').on('click', function() {
-                const newImageSrc = $(this).data('image');
-                $('#main-image').fadeOut(200, function() {
-                    $(this).attr('src', newImageSrc).fadeIn(200);
+            $('.thumbnail-wrapper').on('click', function() {
+                const newImageSrc = $(this).find('.thumbnail-image').data('image');
+                $('.thumbnail-wrapper').removeClass('active');
+                $(this).addClass('active');
+                $('#main-image').fadeOut(150, function() {
+                    $(this).attr('src', newImageSrc).fadeIn(150);
                 });
             });
 

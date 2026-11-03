@@ -37,7 +37,7 @@
         .product-image {
             position: relative;
             overflow: hidden;
-            height: 250px;
+            aspect-ratio: 1 / 1;
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         }
 
@@ -50,6 +50,26 @@
 
         .product-card:hover .product-image img {
             transform: scale(1.05);
+        }
+
+        .product-image .hover-img {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.4s ease, transform 0.3s ease;
+        }
+
+        .product-card:hover .product-image .hover-img {
+            opacity: 1;
+        }
+
+        .product-brand {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #b8892d;
+            margin-bottom: 4px;
         }
 
         .product-badge {
@@ -299,8 +319,31 @@
         }
 
         /* Carousel Styles */
+        .carousel-container {
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .carousel-inner {
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+
         .carousel-item {
-            height: 410px;
+            aspect-ratio: 21 / 9;
+        }
+
+        .carousel-indicators li {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 0;
+            margin: 0 5px;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .carousel-indicators .active {
+            background-color: #b8892d;
         }
 
         .carousel-item img {
@@ -375,14 +418,21 @@
         </div>
     </div>
 
+    @if ($slider_products->isNotEmpty())
     <div class="container carousel-container">
-        <div id="carouselExampleRide" class="carousel slide" data-ride="carousel">
+        <div id="carouselExampleRide" class="carousel slide carousel-fade" data-ride="carousel" data-interval="5000">
+            <ol class="carousel-indicators">
+                @foreach ($slider_products as $key => $product)
+                    <li data-target="#carouselExampleRide" data-slide-to="{{ $key }}"
+                        class="{{ $key == 0 ? 'active' : '' }}"></li>
+                @endforeach
+            </ol>
             <div class="carousel-inner">
                 @foreach ($slider_products as $key => $product)
                     <div class="carousel-item {{ $key == 0 ? 'active' : '' }}">
                         <a
                             href="{{ route('product.single', ['locale' => app()->getLocale(), 'id' => $product->id]) }}">
-                            <img src="{{ asset('storage/' . ($product->image1 ?? 'default.png')) }}"
+                            <img src="{{ $product->banner_url }}"
                                 alt="{{ $product->name_uz }}">
                         </a>
                     </div>
@@ -399,6 +449,7 @@
             </a>
         </div>
     </div>
+    @endif
 
     <div class="site-section bg-light">
         <div class="container">
@@ -410,8 +461,12 @@
                                 <div class="product-image">
                                     <a
                                         href="{{ route('product.single', ['locale' => app()->getLocale(), 'id' => $product->id]) }}">
-                                        <img src="{{ asset('storage/' . ($product->image1 ?? 'default.png')) }}"
+                                        <img src="{{ $product->image_url }}" loading="lazy"
                                             alt="{{ $product->{'name_' . app()->getLocale()} }}">
+                                        @if (isset($product->gallery[1]))
+                                            <img src="{{ $product->gallery[1] }}" loading="lazy" class="hover-img"
+                                                alt="" aria-hidden="true">
+                                        @endif
                                     </a>
 
                                     {{-- File Badge - shows if product has a file --}}
@@ -427,6 +482,7 @@
                                 </div>
 
                                 <div class="product-info">
+                                    <div class="product-brand">Sino Tib</div>
                                     <h3 class="product-title">
                                         <a
                                             href="{{ route('product.single', ['locale' => app()->getLocale(), 'id' => $product->id]) }}">
