@@ -179,7 +179,7 @@
                     <h2 class="text-black">{{ $product->{'name_' . app()->getLocale()} }}</h2>
 
                     @if ($product->{'description_' . app()->getLocale()})
-                        <p>{{ $product->{'description_' . app()->getLocale()} }}</p>
+                        <p>{!! nl2br(e($product->{'description_' . app()->getLocale()})) !!}</p>
                     @endif
 
                     <div class="price-section mb-3">
