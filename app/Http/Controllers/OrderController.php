@@ -129,7 +129,7 @@ class OrderController extends Controller
                 ]]
             ];
 
-            Http::post("https://api.telegram.org/bot" . env('TELEGRAM_BOT_TOKEN') . "/sendMessage", [
+            Http::post("https://api.telegram.org/bot" . config('services.telegram.bot_token') . "/sendMessage", [
                 'chat_id' => $order->chat_id,
                 'text' => $notificationMessage,
                 'reply_markup' => json_encode($keyboard)

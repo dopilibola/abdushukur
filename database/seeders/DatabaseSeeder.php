@@ -15,8 +15,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = env('ADMIN_EMAIL');
-        $password = env('ADMIN_PASSWORD');
+        $email = config('app.admin.email');
+        $password = config('app.admin.password');
 
         if (! $email || ! $password) {
             $this->command?->warn('ADMIN_EMAIL / ADMIN_PASSWORD not set in .env — admin user not seeded. Use: php artisan admin:create');
@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         }
 
         $user = User::firstOrNew(['email' => $email]);
-        $user->name = $user->name ?: env('ADMIN_NAME', 'Admin');
+        $user->name = $user->name ?: config('app.admin.name', 'Admin');
         $user->password = $password; // hashed by the model's "hashed" cast
         $user->is_admin = true;
         $user->save();

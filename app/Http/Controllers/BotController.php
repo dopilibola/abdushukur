@@ -271,7 +271,7 @@ class BotController extends Controller
     public function webhook(Request $request)
     {
         // Faqat Telegram'dan kelgan so'rovlar qabul qilinadi (setWebhook'dagi secret_token)
-        $secret = (string) env('TELEGRAM_WEBHOOK_SECRET');
+        $secret = (string) config('services.telegram.webhook_secret');
         $receivedSecret = (string) $request->header('X-Telegram-Bot-Api-Secret-Token');
 
         if ($secret === '' || !hash_equals($secret, $receivedSecret)) {
@@ -280,7 +280,7 @@ class BotController extends Controller
         }
 
         $data = $request->all();
-        $token = env('TELEGRAM_BOT_TOKEN');
+        $token = config('services.telegram.bot_token');
         $apiUrl = "https://api.telegram.org/bot{$token}/sendMessage";
 
         if (isset($data['message'])) {
@@ -484,7 +484,7 @@ class BotController extends Controller
                 if ($order) {
                     Cache::forget($this->pendingPaymentKey($chatId));
 
-                    $channelId = env('TELEGRAM_CHAT_ID');
+                    $channelId = config('services.telegram.chat_id');
                     $productsList = "";
                     foreach ($order->items as $item) {
                         $productsList .= "   • {$item->product->name_uz} x{$item->quantity} - " . number_format($item->price * $item->quantity) . " so'm\n";
@@ -672,7 +672,7 @@ class BotController extends Controller
 
             if (strpos($callbackData, 'approve_') === 0 || strpos($callbackData, 'reject_') === 0) {
                 // Tasdiqlash/rad etish faqat admin kanalidagi tugmalardan qabul qilinadi
-                if ((string) $chatId !== (string) env('TELEGRAM_CHAT_ID')) {
+                if ((string) $chatId !== (string) config('services.telegram.chat_id')) {
                     Http::post("https://api.telegram.org/bot{$token}/answerCallbackQuery", [
                         'callback_query_id' => $callbackId,
                         'text' => '⛔ Ruxsat yo\'q'

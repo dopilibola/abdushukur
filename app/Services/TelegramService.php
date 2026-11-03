@@ -9,8 +9,8 @@ class TelegramService
 {
     public static function sendMessage($message)
     {
-        $token = env('TELEGRAM_BOT_TOKEN');
-        $chatId = env('TELEGRAM_CHAT_ID');
+        $token = config('services.telegram.bot_token');
+        $chatId = config('services.telegram.chat_id');
 
         Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
             'chat_id' => $chatId,
