@@ -356,7 +356,7 @@ return [
             . "‼️ Note: avoid spicy and salty food and carbonated drinks.\n"
             . "Course: 3 to 6 months, may be extended depending on the condition.\n\n"
             . "90 capsules, 100% natural.",
-        'price' => 200000,
+        'price' => 250000,
         'slug' => 'buqoq-dorisi',
     ],
     [
@@ -379,7 +379,7 @@ return [
             . "‼️ Note: avoid spicy and salty food and carbonated drinks.\n"
             . "Course: may be extended to 3–6 months depending on the condition.\n\n"
             . "90 capsules, 100% natural.",
-        'price' => 200000,
+        'price' => 250000,
         'slug' => 'oshqozon-dorisi',
     ],
     [
@@ -402,7 +402,7 @@ return [
             . "‼️ Note: avoid spicy and salty food and carbonated drinks.\n"
             . "Course: may be extended to 3–6 months.\n\n"
             . "90 capsules, 100% natural.",
-        'price' => 200000,
+        'price' => 250000,
         'slug' => 'gemorroy-dorisi',
     ],
 ];
